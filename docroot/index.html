@@ -1,0 +1,29 @@
+<!doctype html>
+<html>  
+    <head>
+        <meta charset="utf-8"/>
+        <script src="wasm_exec.js"></script>
+        <script>
+            const go = new Go();
+            WebAssembly.instantiateStreaming(fetch("json.wasm"), go.importObject).then((result) => {
+                go.run(result.instance);
+            });
+        </script>
+    </head>
+    <body>
+         <textarea id="inputA" name="inputA" cols="80" rows="20"></textarea>
+				 <textarea id="inputB" name="inputB" cols="80" rows="20"></textarea>
+         <input id="button" type="submit" name="button" value="pretty json" onclick="diff(inputA.value, inputB.value)"/>
+         <div id="diffoutput" name="diffoutput" cols="80" rows="20"></div>
+    </body>
+    <script>
+        var diff = function(inputA, inputB) {
+					var result = diffStrings(inputA, inputB)
+					if (( result != null) && ('error' in result)) {
+							console.log("Go return value", result)
+							diffoutput.value = ""
+							alert(result.error)
+					}
+        }
+     </script>
+</html>
