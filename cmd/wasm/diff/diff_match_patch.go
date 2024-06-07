@@ -140,9 +140,198 @@ func (dmp *DiffMatchPatch) diffCompute(textA, textB string, checklines bool, dea
 
 	if len(shorttext) == 1 {
 		// Single character string.
-		// After the previous speedup, the character can't be an equality
+		// After the previous speedup, the character can't be an equality.
+		diffs = append(diffs, Diff{DELETE, textA})
+		diffs = append(diffs, Diff{INSERT, textB})
+		return diffs
 	}
 
+	// Check to see if the problem can be split in two.
+	textA_1, textA_2, textB_1, textB_2, midCommon := dmp.diff_halfMatch(textA, textB)
+
+	if textA_1 != "" {
+		// A half-match was found.
+		// Send both pairs off for separate processing.
+		_, diffs_a := dmp.diffMainDeadline(textA_1, textB_1, checklines, deadline)
+		_, diffs_b := dmp.diffMainDeadline(textA_2, textB_2, checklines, deadline)
+
+		// Merge the results.
+		diffs = append(diffs_a, Diff{EQUAL, midCommon})
+		diffs = append(diffs, diffs_b...)
+		return diffs
+	}
+
+	// Perform a real diff.
+	if checklines && len(textA) > 100 && len(textB) > 100 {
+		return diff_lineMode(textA, textB, deadline)
+	}
+
+	return dmp.diff_bisect_(textA, textB, deadline)
+}
+
+// * diff_lineMode_
+func (dmp *DiffMatchPatch) diff_lineMode(textA, textB string, deadline time.Time) []Diff {
+	// Scan the text on a line-by-line basis first.
+	b := dmp.diff_linesToChars(textA, textB)
+	textA = b[0].toString()
+	textB = b[1].toString()
+	lineArray := b[2].toStringList()
+
+	diffs := dmp.diffMainDeadline(textA, textB, false, deadline)
+
+	// Convert the diff back to original text.
+	diffs = dmp.diff_charsToLines(diffs, lineArray)
+	// Eliminate freak matches (e.g. blank lines)
+	diffs = dmp.DiffCleanupSemantic(diffs)
+
+	// Rediff any replacement blocks, this time character-by-character.
+	// Add a dummy entry at the end.
+	diffs = append(diffs, Diff{EQUAL, ""})
+	count_delete, count_insert := 0, 0
+	text_delete := ""
+	text_insert := ""
+
+	pointer := 0
+	for pointer < len(diffs) {
+		switch diffs[pointer].Type {
+		case INSERT:
+			count_insert++
+			text_insert += diffs[pointer].Text
+		case DELETE:
+			count_delete++
+			text_delete += diffs[pointer].Text
+		case EQUAL:
+			// Upon reaching an equality, check for prior redundancies.
+			if count_delete >= 1 && count_insert >= 1 {
+				// Delete the offending records and add the merged ones.
+				diffs = diffs[:pointer-count_delete-count_insert]
+				pointer = pointer - count_delete - count_insert
+				_, newDiffs := dmp.diffMainDeadline(text_delete, text_insert, false, deadline)
+				for _, newDiff := range newDiffs {
+					diffs = append(diffs, newDiff)
+					pointer++
+				}
+				count_insert = 0
+				count_delete = 0
+				text_delete = ""
+				text_insert = ""
+			}
+		}
+	}
+	diffs = diffs[:len(diffs)-1]
+	return diffs
+}
+
+// * diff_bisect_
+func (dmp *DiffMatchPatch) diff_bisect_(textA, textB string, deadline time.Time) []Diff {
+	textALen := len(textA)
+	textBLen := len(textB)
+	var max_d int = (textALen + textBLen + 1) / 2
+	v_offset := max_d
+	v_length := 2 * max_d
+	v1 := make([]int, v_length)
+	v2 := make([]int, v_length)
+
+	for x := range v1 {
+		v1[x] = -1
+		v2[x] = -1
+	}
+
+	delta := textALen - textBLen
+
+	// If the total number of characters is odd, then the front path will
+	// collide with the reverse path.
+	front := (delta%2 != 0)
+
+	// Offsets for start and end of k loop.
+	// Prevents mapping of space beyond the grid.
+	k1start := 0
+	k1end := 0
+	k2start := 0
+	k2end := 0
+
+	for d := 0; d < max_d; d++ {
+		// Bail out if deadline is reached.
+		if !deadline.IsZero() && time.Now().After(deadline) {
+			break
+		}
+		// Walk the front path one step.
+		for k1 := -d + k1start; k1 <= d-k1end; k1 += 2 {
+			k1_offset := v_offset + k1
+			var x1 int
+			if k1 == -d || (k1 != d && v1[k1_offset-1] < v1[k1_offset+1]) {
+				x1 = v1[k1_offset+1]
+			} else {
+				x1 = v1[k1_offset-1] + 1
+			}
+			y1 := x1 - k1
+			for x1 < textALen && y1 < textBLen && textA[x1] == textB[y1] {
+				x1++
+				y1++
+			}
+			v1[k1_offset] = x1
+			if x1 > textALen {
+				// Ran off the right of the graph.
+				k1end += 2
+			} else if y1 > textBLen {
+				// Ran off the bottom of the graph.
+				k1start += 2
+			} else if front {
+				k2_offset := v_offset + delta - k1
+				if k2_offset >= 0 && k2_offset < v_length && v2[k2_offset] != -1 {
+					// Mirror x2 onto top-left coordinate system.
+					x2 := textALen - v2[k2_offset]
+					if x1 >= x2 {
+						// Overlap detected.
+						return dmp.diff_bisectSplit(textA, textB, x1, y1, deadline)
+					}
+				}
+			}
+		}
+
+		// Walk the reverse path one step.
+		for k2 := -d + k2start; k2 <= d-k2end; k2 += 2 {
+			k2_offset := v_offset + k2
+			var x2 int
+			if k2 == -d || (k2 != d && v2[k2_offset-1] < v2[k2_offset+1]) {
+				x2 = v2[k2_offset+1]
+			} else {
+				x2 = v2[k2_offset-1] + 1
+			}
+			y2 := x2 - k2
+			for x2 < textALen && y2 < textBLen && textA[textALen-x2-1] == textB[textBLen-y2-1] {
+				x2++
+				y2++
+			}
+			v2[k2_offset] = x2
+			if x2 > textALen {
+				// Ran off the left of the graph.
+				k2end += 2
+			} else if y2 > textBLen {
+				// Ran off the top of the graph.
+				k2start += 2
+			} else if !front {
+				k1_offset := v_offset + delta - k2
+				if k1_offset >= 0 && k1_offset < v_length && v1[k1_offset] != -1 {
+					x1 := v1[k1_offset]
+					y1 := v_offset + x1 - k1_offset
+					// Mirror x2 onto top-left coordinate system.
+					x2 = textALen - x2
+					if x1 >= x2 {
+						// Overlap detected.
+						return dmp.diff_bisectSplit(textA, textB, x1, y1, deadline)
+					}
+				}
+			}
+		}
+
+	}
+
+	// Diff took too long and hit the deadline or
+	// number of diffs equals number of characters, no commonality at all.
+	var diffs []Diff
+	diffs = append(diffs, Diff{DELETE, textA})
+	diffs = append(diffs, Diff{INSERT, textB})
 	return diffs
 }
 
@@ -153,9 +342,8 @@ func (dmp *DiffMatchPatch) diff_commonPrefix(textA, textB string) int {
 
 // * diff_commonSuffix
 // * diff_cleanupMerge
-// * diff_halfMatch_
-// * diff_lineMode_
-// * diff_bisect_
+// * diff_halfMatch
+
 // * new Diff()
 // * diff_cleanupSemantic
 // * diff_prettyHtml
