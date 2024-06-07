@@ -5,74 +5,11 @@ import (
 	"syscall/js"
 )
 
-type Operation int
-
-const (
-	DELETE Operation = iota + 1
-	INSERT
-	EQUAL
-)
-
-func (op Operation) String() string {
-	return [...]string{"DELETE", "INSERT", "EQUAL"}[op-1]
-}
-
-func (op Operation) EnumIndex() int {
-	return int(op)
-}
-
 type Diff struct {
-}
-
-// The main diff method, returning
-func diffMain(inputA, inputB string) (string, error) {
-	return diffMain(inputA, inputB, true)
-}
-
-func diffMain(inputA, inputB string, checklines bool) {
-
 }
 
 // * Go:
 // * diff_main needs text1, text2, opt_checklines (default true), opt_deadline (default to 1 sec)
-// * diff_compute_
-// * diff_commonPrefix
-// * diff_commonSuffix
-// * diff_cleanupMerge
-// * diff_halfMatch_
-// * diff_lineMode_
-// * diff_bisect_
-// * new Diff()
-// * diff_cleanupSemantic
-// * diff_prettyHtml
-// Convert a diff array into a pretty HTML report.
-func diff_prettyHtml(diffs []Diff) {
-	var html []string
-	// var pattern_amp = /&/g;
-	// var pattern_lt = /</g;
-	// var pattern_gt = />/g;
-	// var pattern_para = /\n/g;
-	// for (var x = 0; x < diffs.length; x++) {
-	// 	var op = diffs[x][0];    // Operation (insert, delete, equal)
-	// 	var data = diffs[x][1];  // Text of change.
-	// 	var text = data.replace(pattern_amp, '&amp;').replace(pattern_lt, '&lt;')
-	// 			.replace(pattern_gt, '&gt;').replace(pattern_para, '&para;<br>');
-	// 	switch (op) {
-	// 		case DIFF_INSERT:
-	// 			html[x] = '<ins style="background:#e6ffe6;">' + text + '</ins>';
-	// 			break;
-	// 		case DIFF_DELETE:
-	// 			html[x] = '<del style="background:#ffe6e6;">' + text + '</del>';
-	// 			break;
-	// 		case DIFF_EQUAL:
-	// 			html[x] = '<span>' + text + '</span>';
-	// 			break;
-	// 	}
-	// }
-	// return html.join('');
-}
-
-// * diff_cleanupSemanticLossless
 
 // Added function to wrap the diff call for js exposure
 func diffWrapper() js.Func {
