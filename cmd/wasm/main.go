@@ -48,7 +48,7 @@ func diffWrapper() js.Func {
 		}
 		diffs = dmp.diff_cleanupSematic(diffs)
 		diffs = dmp.diff_cleanupEfficiency(diffs)
-		htmlDiff := dmp.diffPrettyHtml(diffs)
+		htmlDiff := dmp.diff_prettyHtml(diffs)
 		DiffResultArea.Set("value", htmlDiff)
 		return nil
 	})

@@ -45,12 +45,12 @@ func New() *DiffMatchPatch {
 }
 
 // The default diff entry method, sets checklines to true and continues
-func (dmp *DiffMatchPatch) diffRecurse(inputA, inputB string) []Diff {
+func (dmp *DiffMatchPatch) diffRecurse(inputA, inputB string) (error, []Diff) {
 	return dmp.diffMain(inputA, inputB, true)
 }
 
 // Recursive diff method setting a deadline
-func (dmp *DiffMatchPatch) diffMain(inputA, inputB string, checklines bool) []Diff {
+func (dmp *DiffMatchPatch) diffMain(inputA, inputB string, checklines bool) (error, []Diff) {
 	var deadline time.Time
 
 	if dmp.Diff_Timeout > 0 {
@@ -61,16 +61,96 @@ func (dmp *DiffMatchPatch) diffMain(inputA, inputB string, checklines bool) []Di
 }
 
 // Diff method with deadline
-func (dmp *DiffMatchPatch) diffMainDeadline(inputA, inputB string, checklines bool, deadline time.Time) []Diff {
-	return []Diff{}
+func (dmp *DiffMatchPatch) diffMainDeadline(inputA, inputB string, checklines bool, deadline time.Time) (error, []Diff) {
+	// Check for equality (speedup).
+	if inputA == inputB {
+		var diffs []Diff
+		if inputA != "" {
+			diffs = append(diffs, Diff{EQUAL, inputA})
+		}
+		return nil, diffs
+	}
+
+	// Trim off common prefix (speedup).
+	commonLength := dmp.diff_commonPrefix(inputA, inputB)
+	commonPrefix := inputA[:commonLength]
+	textChoppedA := inputA[commonLength:]
+	textChoppedB := inputB[commonLength:]
+
+	// Trim off common suffix (speedup).
+	commonLength = dmp.diff_commonSuffix(textChoppedA, textChoppedB)
+	commonSuffix := textChoppedA[len(inputA)-commonLength:]
+	textChoppedA = textChoppedA[:len(inputA)-commonLength]
+	textChoppedB = textChoppedB[:len(inputB)-commonLength]
+
+	// Compute the diff on the middle block.
+	diffs := dmp.diffCompute(textChop, inputB, checklines, deadline)
+
+	// Restore the prefix and suffix.
+	if commonPrefix != "" {
+		diffs = append([]Diff{{EQUAL, commonPrefix}}, diffs...)
+	}
+	if commonSuffix != "" {
+		diffs = append(diffs, Diff{EQUAL, commonSuffix})
+	}
+	diffs = dmp.diff_cleanupMerge(diffs)
+
+	return nil, diffs
 }
 
 // * diff_compute_
 func (dmp *DiffMatchPatch) diffCompute(textA, textB string, checklines bool, deadline time.Time) []Diff {
-	return []Diff{}
+	diffs := []Diff{}
+
+	if textA == "" {
+		// Just add some text (speedup).
+		diffs = append(diffs, Diff{INSERT, textB})
+		return diffs
+	}
+
+	if textB == "" {
+		// Just delete some text (speedup).
+		diffs = append(diffs, Diff{DELETE, textA})
+		return diffs
+	}
+
+	var longtext, shorttext string
+	if len(textA) > len(textB) {
+		longtext = textA
+		shorttext = textB
+	} else {
+		longtext = textB
+		shorttext = textA
+	}
+	foundTextIndex := strings.Index(longtext, shorttext)
+	if foundTextIndex != -1 {
+		// Shorter text is inside the longer text (speedup).
+		var op Operation
+
+		if len(textA) > len(textB) {
+			op = DELETE
+		} else {
+			op = INSERT
+		}
+		diffs = append(diffs, Diff{op, longtext[:foundTextIndex]})
+		diffs = append(diffs, Diff{EQUAL, shorttext})
+		diffs = append(diffs, Diff{op, longtext[foundTextIndex+len(shorttext):]})
+		return diffs
+	}
+
+	if len(shorttext) == 1 {
+		// Single character string.
+		// After the previous speedup, the character can't be an equality
+	}
+
+	return diffs
 }
 
 // * diff_commonPrefix
+func (dmp *DiffMatchPatch) diff_commonPrefix(textA, textB string) int {
+
+}
+
 // * diff_commonSuffix
 // * diff_cleanupMerge
 // * diff_halfMatch_
