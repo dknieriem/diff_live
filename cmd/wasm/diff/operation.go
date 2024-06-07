@@ -1,4 +1,4 @@
-package main
+package diff
 
 const (
 	DELETE Operation = iota + 1

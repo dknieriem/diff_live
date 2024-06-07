@@ -1,6 +1,9 @@
-package main
+package diff
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type DiffMatchPatch struct {
 	// Defaults.
@@ -28,6 +31,19 @@ type DiffMatchPatch struct {
 	Match_MaxBits uint16
 }
 
+func New() *DiffMatchPatch {
+	// Defaults.
+	return &DiffMatchPatch{
+		Diff_Timeout:          time.Second,
+		Diff_EditCost:         4,
+		Match_Threshold:       0.5,
+		Match_Distance:        1000,
+		Patch_DeleteThreshold: 0.5,
+		Patch_Margin:          4,
+		Match_MaxBits:         32,
+	}
+}
+
 // The default diff entry method, sets checklines to true and continues
 func (dmp *DiffMatchPatch) diffRecurse(inputA, inputB string) []Diff {
 	return dmp.diffMain(inputA, inputB, true)
@@ -46,12 +62,12 @@ func (dmp *DiffMatchPatch) diffMain(inputA, inputB string, checklines bool) []Di
 
 // Diff method with deadline
 func (dmp *DiffMatchPatch) diffMainDeadline(inputA, inputB string, checklines bool, deadline time.Time) []Diff {
-
+	return []Diff{}
 }
 
 // * diff_compute_
 func (dmp *DiffMatchPatch) diffCompute(textA, textB string, checklines bool, deadline time.Time) []Diff {
-
+	return []Diff{}
 }
 
 // * diff_commonPrefix
@@ -64,7 +80,7 @@ func (dmp *DiffMatchPatch) diffCompute(textA, textB string, checklines bool, dea
 // * diff_cleanupSemantic
 // * diff_prettyHtml
 // Convert a diff array into a pretty HTML report.
-func diff_prettyHtml(diffs []Diff) {
+func diff_prettyHtml(diffs []Diff) string {
 	var html []string
 	// var pattern_amp = /&/g;
 	// var pattern_lt = /</g;
@@ -87,7 +103,9 @@ func diff_prettyHtml(diffs []Diff) {
 	// 			break;
 	// 	}
 	// }
-	// return html.join('');
+	text := "test!"
+	html = append(html, "<span>", text, "</span>")
+	return strings.Join(html, "")
 }
 
 // * diff_cleanupSemanticLossless

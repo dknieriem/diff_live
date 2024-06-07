@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"syscall/js"
-)
 
-type Diff struct {
-}
+	"github.com/dknieriem/diff_live/diff"
+)
 
 // * Go:
 // * diff_main needs text1, text2, opt_checklines (default true), opt_deadline (default to 1 sec)
@@ -38,7 +37,8 @@ func diffWrapper() js.Func {
 		inputB := args[1].String()
 		fmt.Printf("inputA %s\n", inputA)
 		fmt.Printf("inputB %s\n", inputB)
-		diffs, err := diffMain(inputA, inputB)
+		dmp := diff.New()
+		diffs, err := dmp.diffMain(inputA, inputB)
 		if err != nil {
 			errStr := fmt.Sprintf("unable to parse JSON. Error %s occurred\n", err)
 			result := map[string]any{
@@ -46,11 +46,11 @@ func diffWrapper() js.Func {
 			}
 			return result
 		}
-		diffs = diff_cleanupSematic(diffs)
-		diffs = diff_cleanupEfficiency(diffs)
-		htmlDiff := diffPrettyHtml(diffs)
+		diffs = dmp.diff_cleanupSematic(diffs)
+		diffs = dmp.diff_cleanupEfficiency(diffs)
+		htmlDiff := dmp.diffPrettyHtml(diffs)
 		DiffResultArea.Set("value", htmlDiff)
-		return nile
+		return nil
 	})
 	return diffFunc
 }
