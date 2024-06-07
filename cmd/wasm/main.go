@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"syscall/js"
 
-	"github.com/dknieriem/diff_live/diff"
+	"github.com/dknieriem/diff_live/cmd/wasm/diff"
 )
 
 // * Go:
