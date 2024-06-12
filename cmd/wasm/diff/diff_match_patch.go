@@ -181,7 +181,7 @@ func (dmp *DiffMatchPatch) DiffCompute(textA, textB []rune, checklines bool, dea
 // * diffLineMode_
 func (dmp *DiffMatchPatch) DiffLineMode(textA, textB []rune, deadline time.Time) []Diff {
 	// Scan the text on a line-by-line basis first.
-	textA, textB, lineArray := dmp.DiffLinesToChars(string(textA), string(textB))
+	textA, textB, lineArray := dmp.DiffLinesToRunes(string(textA), string(textB))
 
 	_, diffs := dmp.DiffMainDeadline(textA, textB, false, deadline)
 
@@ -385,6 +385,11 @@ const UNICODE_INVALID_RANGE_END = 0xDFFF
 const UNICODE_INVALID_RANGE_DELTA = UNICODE_INVALID_RANGE_END - UNICODE_INVALID_RANGE_START + 1
 const UNICODE_RANGE_MAX = 0x10FFFF
 
+func (dmp *DiffMatchPatch) DiffLinesToRunes(text1, text2 string) ([]rune, []rune, []string) {
+	chars1, chars2, lineArray := dmp.DiffLinesToStrings(text1, text2)
+	return []rune(chars1), []rune(chars2), lineArray
+}
+
 func (dmp *DiffMatchPatch) DiffLinesToStrings(text1, text2 string) (string, string, []string) {
 	// '\x00' is a valid character, but various debuggers don't like it. So we'll insert a junk entry to avoid generating a null character.
 	lineArray := []string{""} // e.g. lineArray[4] == 'Hello\n'
@@ -411,6 +416,20 @@ func intArrayToString(ns []uint32) string {
 
 func getBits(i uint32, cnt byte, from byte) byte {
 	return byte((i >> from) & ((1 << cnt) - 1))
+}
+
+func indexOf(s string, needle string, startIndex int) int {
+	if startIndex > len(s)-1 {
+		return -1
+	}
+	if startIndex <= 0 {
+		return strings.Index(s, needle)
+	}
+	index := strings.Index(s[startIndex:], needle)
+	if index == -1 {
+		return -1
+	}
+	return index + startIndex
 }
 
 func intToRune(i uint32) rune {
@@ -458,7 +477,7 @@ func (dmp *DiffMatchPatch) DiffLinesToStringsMunge(text string, lineArray *[]str
 	strs := []uint32{}
 
 	for lineEnd < len(text)-1 {
-		lineEnd = strings.Index(text[lineStart:], "\n")
+		lineEnd = indexOf(text, "\n", lineStart)
 
 		if lineEnd == -1 {
 			lineEnd = len(text) - 1
@@ -490,12 +509,13 @@ func (dmp *DiffMatchPatch) DiffLinesToCharsMunge(text string, lineArray []string
 	// text.split('\n') would would temporarily double our memory footprint.
 	// Modifying text would create many large strings to garbage collect.
 	for lineEnd < len(text)-1 {
-		lineEnd = strings.Index(text[lineStart:], "\n")
+		lineEnd = indexOf(text, "\n", lineStart)
 		if lineEnd == -1 {
 			lineEnd = len(text) - 1
 		}
+		fmt.Println(lineStart, lineEnd, len(text))
 		// line = safeMid(text, lineStart, lineEnd + 1 - lineStart);
-		line := text[lineStart : lineEnd+1]
+		line := text[lineStart:lineEnd]
 		lineStart = lineEnd + 1
 		lineValue, ok := lineHash[line]
 

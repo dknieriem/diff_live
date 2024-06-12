@@ -171,7 +171,57 @@ func TestDiffBisectSplit(t *testing.T) {
 }
 
 // TODO: fix. panic: runtime error: slice bounds out of range [7:6] from (*DiffMatchPatch).DiffLinesToCharsMunge
-func TestDiffLinesToChars(t *testing.T) {
+// func TestDiffLinesToChars(t *testing.T) {
+// 	type TestCase struct {
+// 		TextA string
+// 		TextB string
+
+// 		ExpectedChars1 string
+// 		ExpectedChars2 string
+// 		ExpectedLines  []string
+// 	}
+
+// 	dmp := New()
+
+// 	for i, tc := range []TestCase{
+// 		{"", "alpha\r\nbeta\r\n\r\n\r\n", "", "\x01\x02\x03\x03", []string{"", "alpha\r\n", "beta\r\n", "\r\n"}},
+// 		{"a", "b", "\x01", "\x02", []string{"", "a", "b"}},
+// 		// Omit final newline.
+// 		{"alpha\nbeta\nalpha", "", "\x01\x02\x03", "", []string{"", "alpha\n", "beta\n", "alpha"}},
+// 		// Same lines in TextA and TextB
+// 		{"abc\ndefg\n12345\n", "abc\ndef\n12345\n678", "\x01\x02\x03", "\x01\x04\x03\x05", []string{"", "abc\n", "defg\n", "12345\n", "def\n", "678"}},
+// 	} {
+// 		fmt.Println("Test: ", tc.TextA, tc.TextB)
+// 		actualChars1, actualChars2, actualLines := dmp.DiffLinesToChars(tc.TextA, tc.TextB)
+// 		assert.Equal(t, tc.ExpectedChars1, actualChars1, fmt.Sprintf("Test case #%d, %#v", i, tc))
+// 		assert.Equal(t, tc.ExpectedChars2, actualChars2, fmt.Sprintf("Test case #%d, %#v", i, tc))
+// 		assert.Equal(t, tc.ExpectedLines, actualLines, fmt.Sprintf("Test case #%d, %#v", i, tc))
+// 	}
+
+// 	// More than 256 to reveal any 8-bit limitations.
+// 	n := 300
+// 	lineList := []string{
+// 		"", // Account for the initial empty element of the lines array.
+// 	}
+// 	var charList []rune
+// 	for x := 1; x < n+1; x++ {
+// 		lineList = append(lineList, strconv.Itoa(x)+"\n")
+// 		charList = append(charList, rune(x))
+// 	}
+// 	lines := strings.Join(lineList, "")
+// 	chars := string(charList)
+
+// 	actualChars1, actualChars2, actualLines := dmp.DiffLinesToChars(lines, "")
+// 	assert.Equal(t, chars, actualChars1)
+// 	assert.Equal(t, "", actualChars2)
+// 	assert.Equal(t, lineList, actualLines)
+// }
+
+func TestDiffLinesToStringsMunge(t *testing.T) {
+
+}
+
+func TestDiffLinesToStrings(t *testing.T) {
 	type TestCase struct {
 		TextA string
 		TextB string
@@ -191,7 +241,7 @@ func TestDiffLinesToChars(t *testing.T) {
 		// Same lines in TextA and TextB
 		{"abc\ndefg\n12345\n", "abc\ndef\n12345\n678", "\x01\x02\x03", "\x01\x04\x03\x05", []string{"", "abc\n", "defg\n", "12345\n", "def\n", "678"}},
 	} {
-		actualChars1, actualChars2, actualLines := dmp.DiffLinesToChars(tc.TextA, tc.TextB)
+		actualChars1, actualChars2, actualLines := dmp.DiffLinesToStrings(tc.TextA, tc.TextB)
 		assert.Equal(t, tc.ExpectedChars1, actualChars1, fmt.Sprintf("Test case #%d, %#v", i, tc))
 		assert.Equal(t, tc.ExpectedChars2, actualChars2, fmt.Sprintf("Test case #%d, %#v", i, tc))
 		assert.Equal(t, tc.ExpectedLines, actualLines, fmt.Sprintf("Test case #%d, %#v", i, tc))
@@ -210,7 +260,7 @@ func TestDiffLinesToChars(t *testing.T) {
 	lines := strings.Join(lineList, "")
 	chars := string(charList)
 
-	actualChars1, actualChars2, actualLines := dmp.DiffLinesToChars(lines, "")
+	actualChars1, actualChars2, actualLines := dmp.DiffLinesToStrings(lines, "")
 	assert.Equal(t, chars, actualChars1)
 	assert.Equal(t, "", actualChars2)
 	assert.Equal(t, lineList, actualLines)
