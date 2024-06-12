@@ -37,8 +37,8 @@ func diffWrapper() js.Func {
 		inputB := args[1].String()
 		fmt.Printf("inputA %s\n", inputA)
 		fmt.Printf("inputB %s\n", inputB)
-		dmp := diff.New()
-		diffs, err := dmp.diffMain(inputA, inputB)
+		dmp := new(diff.DiffMatchPatch) //.New()
+		err, diffs := dmp.DiffRecurse(inputA, inputB)
 		if err != nil {
 			errStr := fmt.Sprintf("unable to parse JSON. Error %s occurred\n", err)
 			result := map[string]any{
@@ -46,9 +46,9 @@ func diffWrapper() js.Func {
 			}
 			return result
 		}
-		diffs = dmp.diff_cleanupSematic(diffs)
-		diffs = dmp.diff_cleanupEfficiency(diffs)
-		htmlDiff := dmp.diff_prettyHtml(diffs)
+		diffs = dmp.DiffCleanupSemantic(diffs)
+		diffs = dmp.DiffCleanupEfficiency(diffs)
+		htmlDiff := diff.DiffPrettyHtml(diffs)
 		DiffResultArea.Set("value", htmlDiff)
 		return nil
 	})
