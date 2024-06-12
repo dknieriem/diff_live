@@ -5,7 +5,7 @@
         <script src="wasm_exec.js"></script>
         <script>
             const go = new Go();
-            WebAssembly.instantiateStreaming(fetch("json.wasm"), go.importObject).then((result) => {
+            WebAssembly.instantiateStreaming(fetch("diff.wasm"), go.importObject).then((result) => {
                 go.run(result.instance);
             });
         </script>
@@ -13,13 +13,13 @@
     <body>
          <textarea id="inputA" name="inputA" cols="80" rows="20"></textarea>
 				 <textarea id="inputB" name="inputB" cols="80" rows="20"></textarea>
-         <input id="button" type="submit" name="button" value="pretty json" onclick="diff(inputA.value, inputB.value)"/>
-         <div id="diffoutput" name="diffoutput" cols="80" rows="20"></div>
+         <input id="button" type="submit" name="button" value="diff text" onclick="diff(inputA.value, inputB.value)"/>
+         <div id="diffoutput" name="diffoutput" ></div>
     </body>
     <script>
         var diff = function(inputA, inputB) {
 					var result = diffStrings(inputA, inputB)
-					if (( result != null) && ('error' in result)) {
+					if ((result != null) && ('error' in result)) {
 							console.log("Go return value", result)
 							diffoutput.value = ""
 							alert(result.error)

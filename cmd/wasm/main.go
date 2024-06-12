@@ -49,7 +49,7 @@ func diffWrapper() js.Func {
 		diffs = dmp.DiffCleanupSemantic(diffs)
 		diffs = dmp.DiffCleanupEfficiency(diffs)
 		htmlDiff := diff.DiffPrettyHtml(diffs)
-		DiffResultArea.Set("value", htmlDiff)
+		DiffResultArea.Set("innerHTML", htmlDiff)
 		return nil
 	})
 	return diffFunc
