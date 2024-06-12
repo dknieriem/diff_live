@@ -86,9 +86,11 @@ func (dmp *DiffMatchPatch) DiffMainDeadline(inputA, inputB []rune, checklines bo
 
 	// Trim off common suffix (speedup).
 	commonLength = dmp.DiffCommonSuffix(textChoppedA, textChoppedB)
-	commonSuffix := textChoppedA[len(inputA)-commonLength:]
-	textChoppedA = textChoppedA[:len(inputA)-commonLength]
-	textChoppedB = textChoppedB[:len(inputB)-commonLength]
+
+	commonSuffix := textChoppedA[len(textChoppedA)-commonLength:]
+	fmt.Println(inputA, inputB, commonLength, commonPrefix, commonSuffix, textChoppedA, textChoppedB)
+	textChoppedA = textChoppedA[:len(textChoppedA)-commonLength]
+	textChoppedB = textChoppedB[:len(textChoppedB)-commonLength]
 
 	// Compute the diff on the middle block.
 	diffs := dmp.DiffCompute(textChoppedA, textChoppedB, checklines, deadline)
